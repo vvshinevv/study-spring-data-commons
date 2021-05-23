@@ -6,9 +6,8 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.repository.CrudRepository;
 import study.together.example.jun.model.Book;
+import study.together.example.jun.repository.BookRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,90 +19,116 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DataTest {
 
     @Autowired
-    private MongoRepository<Book, String> mongoRepository;
+    private BookRepository bookRepository;
+
+    Book book = new Book(null, "TEST", "DESC", 500);
+    Book book1 = new Book(null, "TEST1", "DESC1", 1000);
+    Book book2 = new Book(null, "TEST2", "DESC2", 5000);
+    Book book3 = new Book(null, "TEST3", "DESC3", 10000);
+    Book book4 = new Book(null, "TEST3", "DESC4", 10000);
+    Book book5 = new Book(null, "TEST4", "DESC5", 20000);
+
+    @Test
+    public void QUERY_CREATION_TEST() {
+        bookRepository.saveAll(Stream.of(book, book1, book2, book3, book4, book5).collect(Collectors.toList()));
+
+        List<Book> testBook = bookRepository.findByNameAndPrice("TEST", 500);
+        assertEquals(book, testBook.get(0));
+
+        List<Book> test34Books = bookRepository.findByNameAndPrice("TEST3", 10000);
+        assertEquals(2, test34Books.size());
+
+        List<Book> distinctBooks = bookRepository.findDistinctBooksByNameAndPrice("TEST3", 10000);
+//        assertEquals(1, distinctBooks.size()); 의문???
+
+        List<Book> test2Books = bookRepository.findByName("test2");
+        assertEquals(0, test2Books.size());
+
+        List<Book> test2IgnoreBooks = bookRepository.findByNameIgnoreCase("test2");
+        assertEquals(book2, test2IgnoreBooks.get(0));
+
+        List<Book> findNameDescBooks = bookRepository.findByNameAndDesc("test2", "desc2");
+        assertEquals(0, findNameDescBooks.size());
+
+        List<Book> findNameDescIgnoreBooks = bookRepository.findByNameAndDescAllIgnoreCase("test2", "desc2");
+        assertEquals(book2, findNameDescIgnoreBooks.get(0));
+
+        List<Book> priceAscBooks = bookRepository.findAllByOrderByPriceAsc();
+        assertEquals(book, priceAscBooks.get(0));
+
+        List<Book> priceDescBooks = bookRepository.findAllByOrderByPriceDesc();
+        assertEquals(book5, priceDescBooks.get(0));
+    }
 
     @Test
     public void CRUD_TEST() {
-        Book book = new Book(null, "TEST", 500);
-
         // save
-        Book savedBook = mongoRepository.save(book);
-
-        Book book1 = new Book(null, "TEST1", 1000);
-        Book book2 = new Book(null, "TEST2", 5000);
-        Book book3 = new Book(null, "TEST3", 10000);
+        Book savedBook = bookRepository.save(book);
 
         // saveAll
-        List<Book> savedBooks = (List<Book>) mongoRepository.saveAll(Stream.of(book1, book2, book3).collect(Collectors.toList()));
+        List<Book> savedBooks = bookRepository.saveAll(Stream.of(book1, book2, book3).collect(Collectors.toList()));
         assertSame(3, savedBooks.size());
 
         // findById
-        Book findBook = mongoRepository.findById(savedBook.getId()).orElse(null);
+        Book findBook = bookRepository.findById(savedBook.getId()).orElse(null);
         assertEquals(book, findBook);
 
         // existsById
-        boolean isExist = mongoRepository.existsById(savedBooks.get(0).getId());
+        boolean isExist = bookRepository.existsById(savedBooks.get(0).getId());
         assertTrue(isExist);
 
         // findAll
-        List<Book> allBooks = (List<Book>) mongoRepository.findAll();
+        List<Book> allBooks = bookRepository.findAll();
         assertSame(4, allBooks.size());
 
         Iterable<String> bookIds = savedBooks.stream().map(Book::getId).collect(Collectors.toList());
         // findAllById
-        List<Book> findBooks = (List<Book>) mongoRepository.findAllById(bookIds);
+        List<Book> findBooks = (List<Book>) bookRepository.findAllById(bookIds);
         assertSame(3, findBooks.size());
 
         // count
-        long allCount = mongoRepository.count();
+        long allCount = bookRepository.count();
         assertSame(4L, allCount);
 
         // deleteById
-        mongoRepository.deleteById(findBook.getId());
-        assertSame(3L, mongoRepository.count());
+        bookRepository.deleteById(findBook.getId());
+        assertSame(3L, bookRepository.count());
 
         // delete
-        mongoRepository.delete(findBooks.get(1));
-        assertSame(2L, mongoRepository.count());
+        bookRepository.delete(findBooks.get(1));
+        assertSame(2L, bookRepository.count());
 
         // deleteAll
-        mongoRepository.deleteAll(findBooks);
-        assertSame(0L, mongoRepository.count());
+        bookRepository.deleteAll(findBooks);
+        assertSame(0L, bookRepository.count());
 
-        mongoRepository.save(book);
-        mongoRepository.saveAll(Stream.of(book1, book2, book3).collect(Collectors.toList()));
+        bookRepository.save(book);
+        bookRepository.saveAll(Stream.of(book1, book2, book3).collect(Collectors.toList()));
 
-        assertSame(4L, mongoRepository.count());
+        assertSame(4L, bookRepository.count());
         // deleteAll
-        mongoRepository.deleteAll();
-        assertSame(0L, mongoRepository.count());
+        bookRepository.deleteAll();
+        assertSame(0L, bookRepository.count());
     }
 
     @Test
     public void SortNPage_TEST() {
-        Book book = new Book(null, "TEST", 500);
+        bookRepository.saveAll(Stream.of(book, book1, book2, book3).collect(Collectors.toList()));
 
-        // save
-        Book savedBook = mongoRepository.save(book);
-
-        Book book1 = new Book(null, "TEST1", 1000);
-        Book book2 = new Book(null, "TEST2", 5000);
-        Book book3 = new Book(null, "TEST3", 10000);
-
-        // saveAll
-        List<Book> savedBooks = (List<Book>) mongoRepository.saveAll(Stream.of(book1, book2, book3).collect(Collectors.toList()));
-
-        List<Book> priceOrderBooks = mongoRepository.findAll(Sort.by(Sort.Direction.DESC, "price"));
+        List<Book> priceOrderBooks = bookRepository.findAll(Sort.by(Sort.Direction.DESC, "price"));
         assertEquals(10000, priceOrderBooks.get(0).getPrice());
         assertEquals(500, priceOrderBooks.get(3).getPrice());
 
-        Page<Book> book1Page = mongoRepository.findAll(PageRequest.of(0, 4));
-        Page<Book> book2Page = mongoRepository.findAll(PageRequest.of(1, 2));
+        Page<Book> book1Page = bookRepository.findAll(PageRequest.of(0, 4));
+        Page<Book> book2Page = bookRepository.findAll(PageRequest.of(1, 2));
 
+        // 전체 데이터 수 조회
         assertEquals(4, book1Page.getTotalElements());
+        // 전체 페이지 수 조회
         assertEquals(1, book1Page.getTotalPages());
         assertEquals(4, book2Page.getTotalElements());
         assertEquals(2, book2Page.getTotalPages());
+        // 페이지 데이터 조회
         assertEquals(4L, book1Page.stream().count());
         assertEquals(2L, book2Page.stream().count());
     }
