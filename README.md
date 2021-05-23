@@ -1,6 +1,8 @@
 # study-spring-data-commons
 Spring Data Commons 공부해보기!
 
+### Ref 읽어보기
+https://docs.spring.io/spring-data/commons/docs/current/reference/html/#reference
 
 ### 2021/5/21 첫 모임!
 - Spring Data Commons 란 무엇인가!?
