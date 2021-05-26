@@ -67,6 +67,8 @@ public interface CrudRepository<T, ID> extends Repository<T, ID> {
 
 On top of the CrudRepository, there is a PagingAndSortingRepository abstraction that adds additional methods to ease paginated access to entities:
 
+CrudRepository 위에는 엔티티에 페이지를 매긴 액세스를 용이하게 하기 위해 추가 메서드를 추가하는 PagingAndSortingRepository 추상화가 있습니다.
+
 #### Example 6. `PagingAndSortingRepository` interface
 ```java
 public interface PagingAndSortingRepository<T, ID> extends CrudRepository<T, ID> {
@@ -76,3 +78,152 @@ public interface PagingAndSortingRepository<T, ID> extends CrudRepository<T, ID>
   Page<T> findAll(Pageable pageable);
 }
 ```
+
+To access the second page of `User` by a page size of 20, you could do something like the following:
+
+20 페이지 크기로`User`의 두 번째 페이지에 액세스하려면 다음과 같이 할 수 있습니다.
+
+```java
+PagingAndSortingRepository<User, Long> repository = // … get access to a bean
+Page<User> users = repository.findAll(PageRequest.of(1, 20));
+```
+In addition to query methods, query derivation for both count and delete queries is available. The following list shows the interface definition for a derived count query:
+
+쿼리 메서드 외에도 개수 및 삭제 쿼리 모두에 대한 쿼리 파생을 사용할 수 있습니다. 다음 목록은 파생 카운트 쿼리에 대한 인터페이스 정의를 보여줍니다.
+
+#### Example 7. Derived Count Query
+```java
+interface UserRepository extends CrudRepository<User, Long> {
+  long countByLastname(String lastname);
+}
+```
+
+The following listing shows the interface definition for a derived delete query:
+
+#### Example 8. Derived Delete Query
+```java
+interface UserRepository extends CrudRepository<User, Long> {
+
+  long deleteByLastname(String lastname);
+
+  List<User> removeByLastname(String lastname);
+}
+```
+
+### 4.2. Query Methods
+Standard CRUD functionality repositories usually have queries on the underlying datastore. With Spring Data, declaring those queries becomes a four-step process:
+
+ 1. Declare an interface extending Repository or one of its subinterfaces and type it to the domain class and ID type that it should handle, as shown in the following example:
+    
+    ```java 
+    interface PersonRepository extends Repository<Person, Long> { … }
+    ```
+
+ 2.  Declare query methods on the interface.
+    
+    ```java
+    interface PersonRepository extends Repository<Person, Long> {
+        List<Person> findByLastname(String lastname);
+    }
+    ```
+    
+ 3. Set up Spring to create proxy instances for those interfaces, either with JavaConfig or with XML configuration.
+    
+    a. To use Java configuration, create a class similar to the following:
+    ```java
+    import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+    @EnableJpaRepositories
+    class Config { … }
+    ```
+
+    b. To use XML configuration, define a bean similar to the following:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:jpa="http://www.springframework.org/schema/data/jpa"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/data/jpa
+        https://www.springframework.org/schema/data/jpa/spring-jpa.xsd">
+    
+        <jpa:repositories base-package="com.acme.repositories"/>
+    </beans>
+    ```
+    The JPA namespace is used in this example. If you use the repository abstraction for any other store, you need to change this to the appropriate namespace declaration of your store module. In other words, you should exchange jpa in favor of, for example, mongodb. 
+    
+    Also, note that the JavaConfig variant does not configure a package explicitly, because the package of the annotated class is used by default. To customize the package to scan, use one of the basePackage… attributes of the data-store-specific repository’s @Enable${store}Repositories-annotation.
+
+
+ 4. Inject the repository instance and use it, as shown in the following example:
+    ```java
+    class SomeClient {
+    
+      private final PersonRepository repository;
+    
+      SomeClient(PersonRepository repository) {
+        this.repository = repository;
+      }
+    
+      void doSomething() {
+        List<Person> persons = repository.findByLastname("Matthews");
+      }
+    }
+    ```
+    
+The sections that follow explain each step in detail:
+ - Defining Repository Interfaces
+ - Defining Query Methods
+ - Creating Repository Instances
+ - Custom Implementations for Spring Data Repositories
+
+
+### 4.3. Defining Repository Interfaces
+To define a repository interface, you first need to define a domain class-specific repository interface. The interface must extend `Repository and be typed to the domain class and an ID type. If you want to expose CRUD methods for that domain type, extend `CrudRepository instead of `Repository.`
+
+### 4.3.1. Fine-tuning Repository Definition
+Typically, your repository interface extends `Repository`, `CrudRepository, or `PagingAndSortingRepository. Alternatively, if you do not want to extend Spring Data interfaces, you can also annotate your repository interface with `@RepositoryDefinition`. Extending `CrudRepository` exposes a complete set of methods to manipulate your entities. If you prefer to be selective about the methods being exposed, copy the methods you want to expose from `CrudRepository` into your domain repository.
+
+> 	Doing so lets you define your own abstractions on top of the provided Spring Data Repositories functionality.
+
+The following example shows how to selectively expose CRUD methods (`findById` and save, in this case):
+
+
+#### Example 9. Selectively exposing CRUD methods
+```java
+@NoRepositoryBean
+interface MyBaseRepository<T, ID> extends Repository<T, ID> {
+
+  Optional<T> findById(ID id);
+
+  <S extends T> S save(S entity);
+}
+
+interface UserRepository extends MyBaseRepository<User, Long> {
+  User findByEmailAddress(EmailAddress emailAddress);
+}
+```
+In the prior example, you defined a common base interface for all your domain repositories and exposed `findById(…)` as well as `save(…)`.These methods are routed into the base repository implementation of the store of your choice provided by Spring Data (for example, if you use JPA, the implementation is `SimpleJpaRepository`), because they match the method signatures in `CrudRepository`. So the `UserRepository` can now save users, find individual users by ID, and trigger a query to find Users by email address.
+
+> The intermediate repository interface is annotated with @NoRepositoryBean. Make sure you add that annotation to all repository interfaces for which Spring Data should not create instances at runtime.
+
+### 4.3.2. Using Repositories with Multiple Spring Data Modules
+Using a unique Spring Data module in your application makes things simple, because all repository interfaces in the defined scope are bound to the Spring Data module. Sometimes, applications require using more than one Spring Data module. In such cases, a repository definition must distinguish between persistence technologies. When it detects multiple repository factories on the class path, Spring Data enters strict repository configuration mode. Strict configuration uses details on the repository or the domain class to decide about Spring Data module binding for a repository definition:
+
+ 1. If the repository definition extends the module-specific repository, it is a valid candidate for the particular Spring Data module.
+ 2. If the domain class is annotated with the module-specific type annotation, it is a valid candidate for the particular Spring Data module. Spring Data modules accept either third-party annotations (such as JPA’s `@Entity`) or provide their own annotations (such as `@Document` for Spring Data MongoDB and Spring Data Elasticsearch).
+
+The following example shows a repository that uses module-specific interfaces (JPA in this case):
+
+#### Example 10. Repository definitions using module-specific interfaces
+```java
+interface MyRepository extends JpaRepository<User, Long> { }
+
+@NoRepositoryBean
+interface MyBaseRepository<T, ID> extends JpaRepository<T, ID> { … }
+
+interface UserRepository extends MyBaseRepository<User, Long> { … }
+```
+
+`MyRepository` and `UserRepository` extend `JpaRepository` in their type hierarchy. They are valid candidates for the Spring Data JPA module.
