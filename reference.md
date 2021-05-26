@@ -1,4 +1,4 @@
-## Working with Spring Data Repositories
+## 4. Working with Spring Data Repositories
 
 The goal of the Spring Data repository abstraction is to significantly reduce the amount of boilerplate code required to implement data access layers for various persistence stores. 
 
@@ -65,3 +65,14 @@ public interface CrudRepository<T, ID> extends Repository<T, ID> {
 > JpaRepository 또는 MongoRepository와 같은 지속성 기술별 추상화를 제공합니다. 이러한 인터페이스는 CrudRepository를 상속받고 CrudRepository와 같은 다소 일반적인 지속성 기술에 구애받지 않는 인터페이스 외에도 기본 지속성 기술의 기능을 노출합니다.
 
 
+On top of the CrudRepository, there is a PagingAndSortingRepository abstraction that adds additional methods to ease paginated access to entities:
+
+#### Example 6. `PagingAndSortingRepository` interface
+```java
+public interface PagingAndSortingRepository<T, ID> extends CrudRepository<T, ID> {
+
+  Iterable<T> findAll(Sort sort);
+
+  Page<T> findAll(Pageable pageable);
+}
+```
