@@ -9,4 +9,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     List<Member> findAllByName(String name);
     List<Member> findListByName(String name);
     Member findByNameAndAge(String name, Integer age);
+
+    Member findFirstByOrderByNameAsc();
+    Member findTopByOrderByAgeDesc();
 }
