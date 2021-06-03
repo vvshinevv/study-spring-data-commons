@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import study.together.example.hong.entity.Member;
+import study.together.example.hong.repository.MemberRepository;
 import study.together.example.hong.service.MemberService;
 
 import java.util.List;
@@ -11,10 +12,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-public class JPATest {
+public class MemberTest {
 
     @Autowired
     private MemberService memberService;
+
+    @Autowired
+    private MemberRepository memberRepository;
 
 
     @Test
@@ -85,5 +89,31 @@ public class JPATest {
         assertThat(thisMember.getName()).isEqualTo(thatMember.getName());
         assertThat(thisMember.getAge()).isEqualTo(thatMember.getAge());
     }
+
+    @Test
+    public void findFirstByOrderByName() {
+        Member member1 = new Member(1L, "member1", 1);
+        Member member2 = new Member(2L, "member2", 2);
+
+        memberService.saveMember(member1);
+        memberService.saveMember(member2);
+
+        Member findMember = memberRepository.findFirstByOrderByNameAsc();
+        checkMember(member1, findMember);
+    }
+
+    @Test
+    public void findTopByOrderByAgeDesc() {
+        Member member1 = new Member(1L, "member1", 1);
+        Member member2 = new Member(2L, "member2", 2);
+
+        memberService.saveMember(member1);
+        memberService.saveMember(member2);
+
+        Member findMember = memberRepository.findTopByOrderByAgeDesc();
+        checkMember(member2, findMember);
+    }
+
+
 
 }
