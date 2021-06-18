@@ -1,5 +1,6 @@
 package study.together.example.hong.repository;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import study.together.example.hong.entity.Member;
 
@@ -12,4 +13,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Member findFirstByOrderByNameAsc();
     Member findTopByOrderByAgeDesc();
+
+    List<Member> findFirst4ByName(String lastname, Sort sort);
+
+    List<Member> findDistinctTop3ByName(String name);
+
 }

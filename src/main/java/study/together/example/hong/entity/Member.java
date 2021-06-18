@@ -15,6 +15,7 @@ public class Member {
     @Id
     private Long id;
     private String name;
+    private String level;
     private int age;
 
     public Member() {
@@ -24,6 +25,13 @@ public class Member {
     public Member(Long id, String name, int age) {
         this.id = id;
         this.name = name;
+        this.age = age;
+    }
+
+    public Member(Long id, String name, String level, int age) {
+        this.id = id;
+        this.name = name;
+        this.level = level;
         this.age = age;
     }
 }
