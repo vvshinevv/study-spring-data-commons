@@ -4,13 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
 import study.together.example.hong.entity.Member;
 import study.together.example.hong.repository.MemberRepository;
 import study.together.example.hong.service.MemberService;
 
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -143,6 +144,34 @@ public class MemberTest {
 
         for (Member member : findMembers) {
             System.out.println("==> " + member.getId() + ", " + member.getLevel() + ", " + member.getAge());
+        }
+    }
+
+    @Test
+    public void findAllByCustomQueryAndStreamTest() {
+        Member member1 = new Member(1L, "member1", "C", 1);
+        Member member2 = new Member(2L, "member1", "B", 2);
+        Member member3 = new Member(3L, "member1", "A", 2);
+        Member member4 = new Member(4L, "member1", "C", 1);
+        Member member5 = new Member(5L, "member1", "D", 4);
+        Member member6 = new Member(6L, "member6", "E", 5);
+        Member member7 = new Member(7L, "member7", "F", 6);
+
+        memberService.saveMember(member1);
+        memberService.saveMember(member2);
+        memberService.saveMember(member3);
+        memberService.saveMember(member4);
+        memberService.saveMember(member5);
+        memberService.saveMember(member6);
+        memberService.saveMember(member7);
+
+
+
+
+        try (Stream<Member> streams = memberRepository.findAllByCustomQueryAndStream()) {
+            streams.forEach(member -> System.out.println("==> " + member.getId() + ", " + member.getLevel() + ", " + member.getAge()));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
